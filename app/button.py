@@ -19,3 +19,8 @@ un_newsletter_keyboard = InlineKeyboardMarkup(inline_keyboard=
 newsletter_keyboard = InlineKeyboardMarkup(inline_keyboard=
                                       [[InlineKeyboardButton(text="Подписаться",callback_data="subscription_date")],
                                       [InlineKeyboardButton(text="Назад",callback_data="beck")]])
+
+
+ph_or_text_keyboard = InlineKeyboardMarkup(inline_keyboard=
+                                      [[InlineKeyboardButton(text="Фото",callback_data="photo")],
+                                      [InlineKeyboardButton(text="Текст",callback_data="text")]])

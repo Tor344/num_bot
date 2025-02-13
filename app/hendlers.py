@@ -1,10 +1,10 @@
-from aiogram import Router, F,types
+from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
 from aiogram.fsm.state import State,StatesGroup
 from aiogram.fsm.context import FSMContext
 from  aiogram import Bot
-
+from app.json_red import update_text_in_json,update_photo_in_json
 from datetime import datetime
 
 
@@ -21,16 +21,21 @@ class Reg_db(StatesGroup):
 class Date(StatesGroup):
     birth = State()
 
+class Consol(StatesGroup):
+    change = State()
+    photo = State()
+    text = State()
 
 @router.message(Command('start'))
 async def start(message: Message,state:FSMContext,bot: Bot):
-    reg = await db.regist_user(message.from_user.id)
+    reg = await db.examination_user(message.from_user.id)
     user_channel_status = await bot.get_chat_member(chat_id='@num_channel', user_id=message.from_user.id)
     if not user_channel_status.status in ["member", "administrator", "creator"]:
         await message.answer("""Описание с подпиской @num_channel
                 """, reply_markup=butten.subscription_keyboard)
-    elif reg:
+    elif not reg:
         await state.set_state(Reg_db.birth)
+        await db.regist_user(message.from_user.id)
         await message.answer("Введите день рождения в формате (20-10-2021)", reply_markup=None)
     else:
         await message.answer("Главный текст другой текст", reply_markup=butten.main_keyboard)
@@ -39,11 +44,12 @@ async def start(message: Message,state:FSMContext,bot: Bot):
 @router.callback_query(F.data == "examination")
 async def main_panel(call: CallbackQuery,bot:Bot,state:FSMContext):
     user_channel_status = await bot.get_chat_member(chat_id='@num_channel', user_id=call.from_user.id)
-    reg = await db.regist_user(call.from_user.id)
+    reg = await db.examination_user(call.from_user.id)
     if not user_channel_status.status in ["member", "administrator", "creator"]:
         await call.message.edit_text("""Вы не подписаны, подпишитесь  @num_channel
                 """, reply_markup=butten.subscription_keyboard)
-    elif reg:
+    elif not reg:
+        await db.regist_user(call.from_user.id)
         await state.set_state(Reg_db.birth)
         await call.message.answer("Введите день рождения в формате (20-10-2021)", reply_markup=None)
 
@@ -139,6 +145,49 @@ async def main_panel(call: CallbackQuery):
     #     await messages[1].delete()  # Удаляем предпоследнее сообщение
     await call.message.delete()
     await call.message.answer("Главный текст другой текст", reply_markup=butten.main_keyboard)
+
+@router.message(Command("console"))
+async def console(message: Message, state:FSMContext):
+    await message.answer("Ведите число от 1-9 над готорым будет проводится операция")
+    await state.set_state(Consol.change)
+
+
+@router.message(F.text,Consol.change)
+async def ph_or_text(message:Message,state: FSMContext):
+    if int(message.text) < 1 or int(message.text) > 9:
+        await message.answer("такого числа нет, попробуйте еще")
+    else:
+        await state.update_data(num=int(message.text))
+        await message.answer("Выберите данные, которые хотите измненить",reply_markup=butten.ph_or_text_keyboard)
+        await state.set_state(Consol.change)
+
+
+@router.callback_query(F.data.in_(["photo","text"]))
+async def main_panel(call: CallbackQuery,state:FSMContext):
+    if call.data == "photo":
+        await state.set_state(Consol.photo)
+        await call.message.edit_text("Пришилте фотографию")
+    elif call.data == "text":
+        await state.set_state(Consol.text)
+        await call.message.edit_text("Пришилте текст Enter заменив на\\n")
+
+
+@router.message(F.text, Consol.text)
+async def main_panel(message: Message,state:FSMContext):
+    text = message.text
+    data = await state.get_data()
+    update_text_in_json('data.json',data["num"],text)
+    await state.clear()
+
+
+@router.message(F.photo, Consol.photo)
+async def main_panel(message: Message, state: FSMContext):
+
+    photo = message.photo[-1]  # Берем наибольшее качество
+    file_id = photo.file_id
+    data = await state.get_data()
+    update_photo_in_json('data.json',data["num"],file_id)
+    await state.clear()
 
 # @router.message(F.photo)
 # async def handle_photo(message: types.Message):

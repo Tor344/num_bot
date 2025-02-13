@@ -15,6 +15,7 @@ bot = Bot(token=api_key)
 dp = Dispatcher()
 
 async def send_daily_messages():
+    pass
     while True:
         print("True")
         users,flag = await newsletter()

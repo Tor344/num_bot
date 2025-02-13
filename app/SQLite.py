@@ -20,6 +20,17 @@ async def creation():
     connection.commit()
     connection.close()
 
+
+async def examination_user(user_id):
+    # Устанавливаем соединение с базой данных
+    connection = sqlite3.connect('my_database.db')
+    cursor = connection.cursor()
+    user = cursor.execute(("""SELECT 1 FROM
+     Users WHERE id == '{key}'""".format(key=user_id))).fetchone()
+    if not user:
+        return 0
+    return 1
+
 async def regist_user(user_id):
     # Устанавливаем соединение с базой данных
     connection = sqlite3.connect('my_database.db')

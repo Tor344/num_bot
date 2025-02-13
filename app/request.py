@@ -1,5 +1,5 @@
 from datetime import datetime
-import re
+import json
 
 def is_valid_date(day, month, year):
     try:
@@ -13,7 +13,6 @@ def is_valid_date(day, month, year):
     except ValueError:
         # Если дата невалидна, вернем False
         return False
-print(is_valid_date(1,1,2000))
 
 def calculate(x):
     # Убедитесь, что x - это строка длиной не менее 12 символов
@@ -25,11 +24,14 @@ def calculate(x):
 
     # Получаем цифровую сумму
     chislo = sumnum(chislo)
+    with open('app/data.json', 'r', encoding='utf-8') as file:
+        data = json.load(file)
 
-    # Выводим результаты
-    print(f"Ваш Нумерологический код этого дня: {chislo}")
-    print(ChisloRozhdeniya(chislo))
-    return chislo, ChisloRozhdeniya(chislo), photo(chislo)
+    for item in data:
+        if item['id'] == chislo:
+            text = item['text']
+            photo = item['photo_ids']
+    return chislo , str(text),str(photo)
 #
 # def isValidDate(s_text):
 #     # Регулярное выражение для проверки формата даты
