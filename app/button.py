@@ -21,6 +21,14 @@ newsletter_keyboard = InlineKeyboardMarkup(inline_keyboard=
                                       [InlineKeyboardButton(text="Назад",callback_data="beck")]])
 
 
-ph_or_text_keyboard = InlineKeyboardMarkup(inline_keyboard=
-                                      [[InlineKeyboardButton(text="Фото",callback_data="photo")],
-                                      [InlineKeyboardButton(text="Текст",callback_data="text")]])
+ph_or_text_keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="Фото", callback_data="photo")],  # Первый ряд с одной кнопкой
+    [InlineKeyboardButton(text="Текст", callback_data="text")],  # Второй ряд с одной кнопкой
+    [InlineKeyboardButton(text="Текст и Фото", callback_data="all")]  # Третий ряд с одной кнопкой
+])
+
+
+bool_keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="ДА", callback_data="yes")],  # Первый ряд
+    [InlineKeyboardButton(text="НЕТ", callback_data="no")]   # Второй ряд
+])

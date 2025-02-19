@@ -18,14 +18,17 @@ class Reg_db(StatesGroup):
     birth = State()
     name = State()
 
+
 class Date(StatesGroup):
     birth = State()
 
 class Consol(StatesGroup):
     change = State()
     photo = State()
+    photo_all = State()
     text = State()
-
+    text_all = State()
+    confirmation = State()
 @router.message(Command('start'))
 async def start(message: Message,state:FSMContext,bot: Bot):
     reg = await db.examination_user(message.from_user.id)
@@ -162,7 +165,7 @@ async def ph_or_text(message:Message,state: FSMContext):
         await state.set_state(Consol.change)
 
 
-@router.callback_query(F.data.in_(["photo","text"]))
+@router.callback_query(F.data.in_(["photo","text","all"]))
 async def main_panel(call: CallbackQuery,state:FSMContext):
     if call.data == "photo":
         await state.set_state(Consol.photo)
@@ -170,14 +173,40 @@ async def main_panel(call: CallbackQuery,state:FSMContext):
     elif call.data == "text":
         await state.set_state(Consol.text)
         await call.message.edit_text("Пришилте текст Enter заменив на\\n")
+    else:
+        await state.set_state(Consol.text_all)
+        await call.message.edit_text("Пришилте сначало текст Enter заменив на\\n")
 
+
+@router.message(F.text, Consol.text_all)
+async def main_panel(message: Message,state:FSMContext):
+    text = message.text
+    await state.update_data(text=text)
+    await state.set_state(Consol.photo_all)
+    await message.answer("Пришлите теперь фотографию")
+
+
+@router.message(F.photo, Consol.photo_all)
+async def main_panel(message: Message, state: FSMContext):
+
+    photo = message.photo[-1]  # Берем наибольшее качество
+    file_id = photo.file_id
+    data = await state.get_data()
+    await state.update_data(photo=file_id)
+    text = data["text"]
+    await message.answer_photo(photo=file_id)
+    await message.answer(f"{text}\n\nЕсли этот текст подходит для изменения, нажмите ДА, иначе НЕТ")
+
+    await state.set_state(Consol.confirmation)
 
 @router.message(F.text, Consol.text)
 async def main_panel(message: Message,state:FSMContext):
     text = message.text
-    data = await state.get_data()
-    update_text_in_json('data.json',data["num"],text)
-    await state.clear()
+    await state.update_data(text=text)
+    await message.answer(f"{text}\n\nЕсли этот текст подходит для изменения, нажмите ДА, иначе НЕТ",
+                         reply_markup=butten.bool_keyboard)
+
+
 
 
 @router.message(F.photo, Consol.photo)
@@ -185,9 +214,35 @@ async def main_panel(message: Message, state: FSMContext):
 
     photo = message.photo[-1]  # Берем наибольшее качество
     file_id = photo.file_id
-    data = await state.get_data()
-    update_photo_in_json('data.json',data["num"],file_id)
-    await state.clear()
+    await state.update_data(photo=file_id)
+    await message.answer_photo(photo=file_id,
+                               caption="Если эта фотография подходит для изменения, нажмите ДА, иначе НЕТ",
+                               reply_markup=butten.bool_keyboard)
+
+@router.callback_query(F.data.in_(["yes","no"]))
+async def confirmation1(call:CallbackQuery,state:FSMContext):
+    if call.data == "yes":
+        data = await state.get_data()
+        if data.get("text") is not None and data.get("photo") is not None:
+            update_text_in_json('data.json', data["num"],data["text"])
+            update_photo_in_json('data.json', data["num"], data["photo"])
+        elif data.get("text") is None:
+            update_photo_in_json('data.json', data["num"], data["photo"])
+        else:
+            update_text_in_json('data.json', data["num"],data["text"])
+        await state.clear()
+        await call.message.delete()
+        await call.message.answer("Главный текст другой текст", reply_markup=butten.main_keyboard)
+    else:
+        await call.message.delete()
+        await call.message.answer("Ведите число от 1-9 над готорым будет проводится операция")
+        await state.set_state(Consol.change)
+
+
+
+
+
+
 
 # @router.message(F.photo)
 # async def handle_photo(message: types.Message):
